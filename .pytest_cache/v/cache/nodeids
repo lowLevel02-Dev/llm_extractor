@@ -1,4 +1,0 @@
-[
-  "test_main.py::test_missing_api_key_returns_401",
-  "test_main.py::test_valid_request_returns_202_and_task_id"
-]
