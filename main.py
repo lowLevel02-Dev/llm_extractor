@@ -12,14 +12,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, Column, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# ------------------------------------------------------------------
-# Security & Rate Limiting Configuration
-# ------------------------------------------------------------------
 CLIENT_API_KEY = os.getenv("CLIENT_API_KEY", "default_secret_dev_key")
 api_key_header_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-# In-Memory State Store for Rate Limiting
-# Maps API Keys to a list of request timestamps (acting as a queue)
 RATE_LIMIT_DB: Dict[str, List[float]] = {}
 MAX_REQUESTS_PER_MINUTE = 5
 
@@ -56,9 +51,7 @@ async def verify_client_api_key(api_key: Optional[str] = Security(api_key_header
     
     return api_key
 
-# ------------------------------------------------------------------
-# Database Configuration (SQLite)
-# ------------------------------------------------------------------
+os.makedirs("./data", exist_ok=True)
 DATABASE_URL = "sqlite:///./data/tasks.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -74,9 +67,6 @@ class TaskRecord(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# ------------------------------------------------------------------
-# App Setup & Models
-# ------------------------------------------------------------------
 app = FastAPI(title="Secured & Rate Limited Extraction API")
 client = genai.Client()
 
@@ -95,9 +85,6 @@ class TaskStatusResponse(BaseModel):
     error: Optional[str] = None
     created_at: Optional[datetime] = None
 
-# ------------------------------------------------------------------
-# Background Worker
-# ------------------------------------------------------------------
 def process_extraction_task(task_id: str, text: str, extraction_schema: dict[str, str]):
     db = SessionLocal()
     schema_str = json.dumps(extraction_schema, indent=2)
@@ -132,9 +119,6 @@ def process_extraction_task(task_id: str, text: str, extraction_schema: dict[str
     finally:
         db.close()
 
-# ------------------------------------------------------------------
-# Protected Endpoints
-# ------------------------------------------------------------------
 @app.post("/api/extract-async", response_model=TaskSubmissionResponse, status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(verify_client_api_key)])
 async def extract_async(payload: DynamicExtractRequest, background_tasks: BackgroundTasks):
     task_id = str(uuid.uuid4())
