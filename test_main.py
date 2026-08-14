@@ -3,7 +3,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from main import app, CLIENT_API_KEY
 
-# Create a test client that interacts with our FastAPI app
+
 client = TestClient(app)
 
 def test_missing_api_key_returns_401():
@@ -33,5 +33,5 @@ def test_valid_request_returns_202_and_task_id(mock_task):
     
     assert "task_id" in data
     assert data["status"] == "pending"
-    # Verify our mocked background task was successfully called by FastAPI
+
     mock_task.assert_called_once()
